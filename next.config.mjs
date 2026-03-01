@@ -3,12 +3,22 @@ import withPWA from '@ducanh2912/next-pwa';
 const nextConfig = {
   /* config options here */
   reactCompiler: false,
-  output: process.env.NODE_ENV === 'production' ? 'export' : undefined,
+  devIndicators: {
+    appIsrStatus: false,
+    buildActivity: false,
+  },
+  turbopack: {
+    root: '.',
+  },
+  output: (process.env.NODE_ENV === 'production' && !process.env.VERCEL) ? 'export' : undefined,
 };
 
-export default withPWA({
-  dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
-  register: true,
-  skipWaiting: true,
-})(nextConfig);
+const finalConfig = process.env.NODE_ENV === 'production'
+  ? withPWA({
+    dest: 'public',
+    register: true,
+    skipWaiting: true,
+  })(nextConfig)
+  : nextConfig;
+
+export default finalConfig;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CloudSun, Wind, Droplets, Thermometer, Loader2, MapPin, Calendar } from 'lucide-react';
+import { Geolocation } from '@capacitor/geolocation';
 
 // WMO weather code to icon and description mapping
 function wmoInfo(code) {
@@ -22,35 +23,42 @@ export default function WeatherApp() {
     const [error, setError] = useState(false);
 
     useEffect(() => {
-        if (!navigator.geolocation) { setError('Location not supported'); setLoading(false); return; }
-
-        setLoading(true);
-        navigator.geolocation.getCurrentPosition(
-            async ({ coords: { latitude: lat, longitude: lon } }) => {
-                try {
-                    const [wxRes, geoRes] = await Promise.all([
-                        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`),
-                        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
-                    ]);
-
-                    if (!wxRes.ok) throw new Error('API Error');
-
-                    const wx = await wxRes.json();
-                    const geo = await geoRes.json();
-
-                    setData(wx);
-                    setCity(geo.city || geo.locality || geo.principalSubdivision || 'Your Location');
-                } catch (err) {
-                    setError('Failed to fetch weather data.');
+        const fetchWeather = async () => {
+            setLoading(true);
+            try {
+                const permission = await Geolocation.checkPermissions();
+                if (permission.location !== 'granted') {
+                    const request = await Geolocation.requestPermissions();
+                    if (request.location !== 'granted') {
+                        setError('Location permission denied.');
+                        setLoading(false);
+                        return;
+                    }
                 }
-                setLoading(false);
-            },
-            (err) => {
-                setError('Location access denied or unavailable.');
-                setLoading(false);
-            },
-            { timeout: 10000 }
-        );
+
+                const position = await Geolocation.getCurrentPosition();
+                const { latitude: lat, longitude: lon } = position.coords;
+
+                const [wxRes, geoRes] = await Promise.all([
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`),
+                    fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
+                ]);
+
+                if (!wxRes.ok) throw new Error('API Error');
+
+                const wx = await wxRes.json();
+                const geo = await geoRes.json();
+
+                setData(wx);
+                setCity(geo.city || geo.locality || geo.principalSubdivision || 'Your Location');
+            } catch (err) {
+                setError('Failed to fetch location or weather data.');
+                console.error(err);
+            }
+            setLoading(false);
+        };
+
+        fetchWeather();
     }, []);
 
     if (loading) {

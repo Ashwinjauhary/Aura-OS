@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Geolocation } from '@capacitor/geolocation';
 import {
     User, FolderCode, Mail, Code2, FileText, LayoutTemplate,
     Settings, Camera, Map, Terminal, Linkedin, Github,
@@ -28,24 +29,35 @@ const WeatherWidget = React.memo(function WeatherWidget() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
-    const fetchWeather = useCallback(() => {
+    const fetchWeather = useCallback(async () => {
         setLoading(true);
         setError(false);
-        if (!navigator.geolocation) { setError(true); setLoading(false); return; }
-        navigator.geolocation.getCurrentPosition(
-            async ({ coords: { latitude: lat, longitude: lon } }) => {
-                try {
-                    const [wx, geo] = await Promise.all([
-                        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&wind_speed_unit=kmh`).then(r => r.json()),
-                        fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`).then(r => r.json()),
-                    ]);
-                    setWeather(wx.current);
-                    setCity(geo.city || geo.locality || 'Your Location');
-                } catch { setError(true); }
+        try {
+            // Check permissions first
+            const permission = await Geolocation.checkPermissions();
+            if (permission.location !== 'granted') {
+                // If not granted, we show "Location needed" error state
+                // We don't automatically request here to avoid annoying popups on every load
+                // The user can click the widget to open the app and trigger request
+                setError(true);
                 setLoading(false);
-            },
-            () => { setError(true); setLoading(false); }
-        );
+                return;
+            }
+
+            const position = await Geolocation.getCurrentPosition();
+            const { latitude: lat, longitude: lon } = position.coords;
+
+            const [wx, geo] = await Promise.all([
+                fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&wind_speed_unit=kmh`).then(r => r.json()),
+                fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`).then(r => r.json()),
+            ]);
+            setWeather(wx.current);
+            setCity(geo.city || geo.locality || 'Your Location');
+        } catch (err) {
+            console.error('Weather widget fetch error:', err);
+            setError(true);
+        }
+        setLoading(false);
     }, []);
 
     useEffect(() => { fetchWeather(); }, [fetchWeather]);
@@ -76,7 +88,7 @@ const WeatherWidget = React.memo(function WeatherWidget() {
                     </div>
                     <div className="flex gap-4 mt-3">
                         <div className="flex items-center gap-1 text-white/50 text-[11px]"><Thermometer size={11} />{Math.round(weather.apparent_temperature)}°</div>
-                        <div className="flex items-center gap-1 text-white/50 text-[11px]"><Wind size={11} />  {Math.round(weather.wind_speed_10m)} км/h</div>
+                        <div className="flex items-center gap-1 text-white/50 text-[11px]"><Wind size={11} />  {Math.round(weather.wind_speed_10m)} km/h</div>
                     </div>
                 </div>
             )}
@@ -229,13 +241,16 @@ export default function HomeScreen({ openApp, wallpaper }) {
         const gIdx = globalIdx(localIdx);
 
         holdTimer.current = setTimeout(() => {
+            // Check if user has started swiping significantly before entering edit mode
+            if (swipeStartX.current !== null && Math.abs(swipeStartX.current - e.clientX) > 10) return;
+
             isDragging.current = true;
             setEditMode(true);
             setDragIdx(gIdx);
             setOverIdx(gIdx);
             setDragPos({ x: e.clientX, y: e.clientY });
             e.currentTarget?.releasePointerCapture?.(e.pointerId);
-        }, 450);
+        }, 600);
     };
 
     const onEditPointerDown = (e, localIdx) => {
@@ -339,6 +354,10 @@ export default function HomeScreen({ openApp, wallpaper }) {
             transition={{ duration: 0.35, ease: 'easeOut' }}
             className="absolute inset-0 z-20 overflow-hidden bg-cover bg-center select-none"
             style={{ backgroundImage: `url("${wallpaper}")`, willChange: 'transform, opacity', transformOrigin: 'center center' }}
+            onPointerDown={(e) => {
+                // If not in edit mode, capture start X for swiping
+                if (!editMode) swipeStartX.current = e.clientX;
+            }}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
@@ -379,10 +398,14 @@ export default function HomeScreen({ openApp, wallpaper }) {
                                 : (e) => onPointerDown(e, localIdx)
                             }
                             onClick={() => {
-                                if (!editMode && !isDragging.current && !isWidget && app.id !== 'githubWidget' && app.id !== 'weatherWidget') {
-                                    openApp(app.id);
-                                } else if (!editMode && !isDragging.current && app.id === 'githubWidget') {
-                                    openApp('github');
+                                if (!editMode && !isDragging.current) {
+                                    if (app.id === 'githubWidget') {
+                                        openApp('github');
+                                    } else if (app.id === 'weatherWidget' || app.id === 'weather') {
+                                        openApp('weather');
+                                    } else if (!isWidget) {
+                                        openApp(app.id);
+                                    }
                                 }
                             }}
                         >

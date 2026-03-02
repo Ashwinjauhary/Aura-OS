@@ -25,26 +25,48 @@ export default function WeatherApp() {
     useEffect(() => {
         const fetchWeather = async () => {
             setLoading(true);
+            setError(false);
             try {
-                const permission = await Geolocation.checkPermissions();
-                if (permission.location !== 'granted') {
-                    const request = await Geolocation.requestPermissions();
-                    if (request.location !== 'granted') {
-                        setError('Location permission denied.');
-                        setLoading(false);
-                        return;
-                    }
-                }
+                let lat, lon;
 
-                const position = await Geolocation.getCurrentPosition();
-                const { latitude: lat, longitude: lon } = position.coords;
+                // Try Capacitor Geolocation first
+                try {
+                    console.log('Checking permissions...');
+                    const permission = await Geolocation.checkPermissions();
+                    console.log('Permission state:', permission);
+
+                    if (permission.location !== 'granted') {
+                        console.log('Requesting permissions...');
+                        const request = await Geolocation.requestPermissions();
+                        console.log('Request result:', request);
+                        if (request.location !== 'granted') {
+                            throw new Error('Location permission not granted');
+                        }
+                    }
+
+                    console.log('Getting current position...');
+                    const position = await Geolocation.getCurrentPosition({
+                        enableHighAccuracy: true,
+                        timeout: 10000
+                    });
+                    lat = position.coords.latitude;
+                    lon = position.coords.longitude;
+                } catch (nativeErr) {
+                    console.warn('Native Geolocation failed, trying browser fallback:', nativeErr);
+                    // Fallback to browser geolocation
+                    const browserPos = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 10000 });
+                    });
+                    lat = browserPos.coords.latitude;
+                    lon = browserPos.coords.longitude;
+                }
 
                 const [wxRes, geoRes] = await Promise.all([
                     fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`),
                     fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`)
                 ]);
 
-                if (!wxRes.ok) throw new Error('API Error');
+                if (!wxRes.ok) throw new Error('Weather API failed');
 
                 const wx = await wxRes.json();
                 const geo = await geoRes.json();
@@ -52,8 +74,8 @@ export default function WeatherApp() {
                 setData(wx);
                 setCity(geo.city || geo.locality || geo.principalSubdivision || 'Your Location');
             } catch (err) {
-                setError('Failed to fetch location or weather data.');
-                console.error(err);
+                console.error('Final weather error:', err);
+                setError(err.message || 'Failed to fetch location or weather data.');
             }
             setLoading(false);
         };
@@ -77,10 +99,15 @@ export default function WeatherApp() {
                     <CloudSun size={32} className="text-red-400" />
                 </div>
                 <h2 className="text-xl font-bold">Weather Unavailable</h2>
-                <p className="text-white/60 text-sm">{error || "Something went wrong."}</p>
-                <button onClick={() => window.location.reload()} className="mt-4 px-6 py-2.5 bg-blue-500 rounded-full font-semibold text-sm active:opacity-70">
-                    Retry
-                </button>
+                <div className="bg-black/20 p-3 rounded-lg w-full">
+                    <p className="text-white/60 text-[12px] break-words">{error || "Something went wrong."}</p>
+                </div>
+                <div className="flex flex-col gap-2 w-full mt-4">
+                    <button onClick={() => window.location.reload()} className="w-full py-3 bg-blue-500 rounded-xl font-bold text-sm active:opacity-70">
+                        Retry (Reload App)
+                    </button>
+                    <p className="text-white/40 text-[10px]">Make sure location is ON in phone settings</p>
+                </div>
             </div>
         );
     }

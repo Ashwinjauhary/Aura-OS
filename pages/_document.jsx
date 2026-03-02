@@ -12,7 +12,7 @@ export default function Document() {
                 <meta name="application-name" content="Aura OS" />
                 <meta name="msapplication-TileColor" content="#000000" />
                 <meta name="theme-color" content="#000000" />
-                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, interactive-widget=resizes-content" />
+                <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, interactive-widget=resizes-content, viewport-fit=cover" />
             </Head>
             <body className="bg-black text-white overflow-hidden select-none touch-none">
                 <Main />

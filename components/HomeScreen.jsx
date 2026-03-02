@@ -339,6 +339,12 @@ export default function HomeScreen({ openApp, wallpaper }) {
             transition={{ duration: 0.35, ease: 'easeOut' }}
             className="absolute inset-0 z-20 overflow-hidden bg-cover bg-center select-none"
             style={{ backgroundImage: `url("${wallpaper}")`, willChange: 'transform, opacity', transformOrigin: 'center center' }}
+            onPointerDown={(e) => {
+                // Swipe to change page (from anywhere on background)
+                if (!editMode && e.target === e.currentTarget) {
+                    swipeStartX.current = e.clientX;
+                }
+            }}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
@@ -419,7 +425,8 @@ export default function HomeScreen({ openApp, wallpaper }) {
 
             {/* Pagination dots */}
             {!editMode && totalPages > 1 && (
-                <div className="absolute bottom-28 left-1/2 -translate-x-1/2 z-10 flex gap-2 items-center">
+                <div className="absolute left-1/2 -translate-x-1/2 z-10 flex gap-2 items-center"
+                    style={{ bottom: 'calc(112px + env(safe-area-inset-bottom, 0px))' }}>
                     {Array.from({ length: totalPages }).map((_, i) => (
                         <button key={i} onClick={() => setPage(i)}
                             className={`rounded-full transition-all duration-300 ${i === page ? 'w-5 h-[6px] bg-white' : 'w-[6px] h-[6px] bg-white/40'}`}
@@ -429,7 +436,8 @@ export default function HomeScreen({ openApp, wallpaper }) {
             )}
 
             {/* Dock */}
-            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 w-[92%] h-[88px] ios-dock rounded-[35px] px-4 py-3 flex justify-between items-center z-10">
+            <div className="absolute left-1/2 -translate-x-1/2 w-[92%] h-[88px] ios-dock rounded-[35px] px-4 py-3 flex justify-between items-center z-10"
+                style={{ bottom: 'calc(20px + env(safe-area-inset-bottom, 0px))' }}>
                 {[
                     { id: 'settings', icon: Settings, color: 'bg-gradient-to-br from-[#8e8e93] to-[#48484a]' },
                     { id: 'gallery', icon: Camera, color: 'bg-gradient-to-br from-[#c8c8cc] to-[#98989d]' },

@@ -3,11 +3,12 @@ import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { Maximize2, Share } from 'lucide-react';
 
 const IMAGES = [
-    'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&q=80',
-    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&q=80',
-    'https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=600&q=80',
-    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=600&q=80',
-    'https://images.unsplash.com/photo-1550439062-609e1531270e?w=600&q=80',
+    '/gallery/dev_avatar_1.png',
+    '/gallery/dev_avatar_2.png',
+    '/gallery/dev_avatar_3.png',
+    '/gallery/dev_avatar_4.png',
+    '/gallery/dev_avatar_5.png',
+    '/gallery/dev_avatar_6.png'
 ];
 
 export default function GalleryApp() {

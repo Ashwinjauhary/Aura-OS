@@ -8,6 +8,7 @@ const nextConfig = {
     buildActivity: false,
   },
   output: (process.env.NODE_ENV === 'production' && !process.env.VERCEL) ? 'export' : undefined,
+  turbopack: {},
 };
 
 const finalConfig = process.env.NODE_ENV === 'production'

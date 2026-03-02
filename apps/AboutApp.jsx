@@ -84,6 +84,23 @@ export default function AboutApp() {
                     </BentoBox>
                 </div>
 
+                {/* Download APK Section */}
+                <BentoBox delay={0.55} className="p-0 cursor-pointer overflow-hidden group h-[60px]">
+                    <a href="/aura-os.apk" download className="w-full h-full bg-[#1c1c1e] hover:bg-[#2c2c2e] transition-colors flex items-center justify-center gap-3 border border-white/5">
+                        <div className="w-8 h-8 rounded-lg bg-[#30d158]/20 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
+                            <svg className="w-5 h-5 text-[#30d158]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                        </div>
+                        <div className="flex flex-col items-start">
+                            <span className="text-[14px] font-semibold text-white">Download Android App</span>
+                            <span className="text-[10px] text-white/40 font-medium">Get the latest Aura OS (APK)</span>
+                        </div>
+                    </a>
+                </BentoBox>
+
                 {/* Bio / About text Bento */}
                 <BentoBox delay={0.6} className="p-5 flex flex-col gap-3">
                     <div className="flex items-center gap-2 mb-1">

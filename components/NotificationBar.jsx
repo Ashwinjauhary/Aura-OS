@@ -16,11 +16,7 @@ export default function NotificationBar({ controlCenterOpen, toggleControlCenter
     }, []);
 
     return (
-        <div className="absolute top-0 w-full flex items-center justify-between px-7 z-50 text-white select-none transition-all duration-300"
-            style={{
-                height: 'calc(54px + env(safe-area-inset-top, 0px))',
-                paddingTop: 'env(safe-area-inset-top, 0px)'
-            }}>
+        <div className="absolute top-0 w-full h-[54px] flex items-center justify-between px-7 z-50 text-white select-none">
             {/* Time */}
             <div className="text-[15px] font-semibold tracking-tight whitespace-nowrap px-1 text-center mt-1">{time}</div>
 

@@ -20,10 +20,7 @@ export default function AppView({ appId, onClose, children }) {
             <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-500/10 blur-[100px] rounded-full pointer-events-none" />
 
             {/* App Header (simulating iOS navigation bar) */}
-            <div className="pb-2 flex items-center px-4 border-b border-white/10 shrink-0 transition-all duration-300"
-                style={{
-                    paddingTop: 'calc(48px + env(safe-area-inset-top, 0px))',
-                }}>
+            <div className="pt-12 pb-2 flex items-center px-4 border-b border-white/10 shrink-0">
                 <button
                     onClick={onClose}
                     className="flex items-center text-blue-500 font-medium active:opacity-70 transition"
@@ -38,8 +35,7 @@ export default function AppView({ appId, onClose, children }) {
 
             {/* Content Area */}
             <div className="flex-1 w-full relative">
-                <div className="absolute inset-0 overflow-y-auto overflow-x-hidden w-full h-full touch-pan-y overscroll-y-contain"
-                    style={{ paddingBottom: 'calc(40px + env(safe-area-inset-bottom, 0px))' }}>
+                <div className="absolute inset-0 overflow-y-auto overflow-x-hidden w-full h-full pb-10 touch-pan-y overscroll-y-contain">
                     {children}
                 </div>
             </div>

@@ -42,5 +42,22 @@ def main():
         fg_size = int((108/48) * size)
         resize_icon(source_icon, os.path.join(folder_path, "ic_launcher_foreground.png"), fg_size)
 
+    # 3. Replace all splash.png files
+    print("Replacing all splash.png files...")
+    for root, dirs, files in os.walk(base_path):
+        for file in files:
+            if file == "splash.png":
+                target_path = os.path.join(root, file)
+                # For splash screens, we use a larger size or just fit it. 
+                # Since we don't know the exact target density from the folder name easily for splash, 
+                # we'll look at the current splash size and match it.
+                try:
+                    old_img = Image.open(target_path)
+                    target_size = old_img.size
+                    print(f"Replacing {target_path} ({target_size[0]}x{target_size[1]})...")
+                    resize_icon(source_icon, target_path, target_size[0]) # Assuming square-ish or just scaling width
+                except Exception as e:
+                    print(f"Could not replace {target_path}: {e}")
+
 if __name__ == "__main__":
     main()

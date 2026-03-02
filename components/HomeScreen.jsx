@@ -22,7 +22,7 @@ function wmoInfo(code) {
     return { icon: '🌡️', label: 'Unknown' };
 }
 
-function WeatherWidget() {
+const WeatherWidget = React.memo(function WeatherWidget() {
     const [weather, setWeather] = useState(null);
     const [city, setCity] = useState('');
     const [loading, setLoading] = useState(true);
@@ -82,10 +82,10 @@ function WeatherWidget() {
             )}
         </div>
     );
-}
+});
 
 // GitHub Widget (Square 2x2)
-function GithubWidget() {
+const GithubWidget = React.memo(function GithubWidget() {
     return (
         <div className="w-full h-full min-h-[155px] ios-glass squircle p-4 flex flex-col justify-between app-icon-shadow text-white pointer-events-none">
             <div className="flex justify-between items-start">
@@ -94,13 +94,13 @@ function GithubWidget() {
             </div>
             <div className="flex-1 flex flex-col justify-end pt-2">
                 <div className="w-11 h-11 rounded-full overflow-hidden mb-1 border-2 border-green-500/30">
-                    <img src="/avatar.png" alt="Ashwin" className="w-full h-full object-cover" />
+                    <img src="/avatar.png" alt="Ashwin" className="w-full h-full object-cover" loading="lazy" />
                 </div>
                 <p className="text-[12px] font-bold text-gray-200">Ashwin Jauhary</p>
             </div>
         </div>
     );
-}
+});
 
 const ALL_APPS = [
     // Page 1
@@ -186,7 +186,7 @@ export default function HomeScreen({ openApp, wallpaper }) {
         document.head.appendChild(style);
     }, []);
 
-    const orderedApps = order.map(id => ALL_APPS.find(a => a.id === id)).filter(Boolean);
+    const orderedApps = React.useMemo(() => order.map(id => ALL_APPS.find(a => a.id === id)).filter(Boolean), [order]);
     const totalPages = Math.ceil(orderedApps.length / APPS_PER_PAGE);
     const pageStart = page * APPS_PER_PAGE;
 
@@ -310,7 +310,7 @@ export default function HomeScreen({ openApp, wallpaper }) {
     const draggingApp = dragIdx !== null ? orderedApps[dragIdx] : null;
 
     // A helper function to dry up app icon code
-    const renderAppElement = (app, isBeingDragged) => {
+    const renderAppElement = React.useCallback((app, isBeingDragged) => {
         if (app.type === 'widget') {
             const WidgetComponent = app.component;
             return (
@@ -330,7 +330,7 @@ export default function HomeScreen({ openApp, wallpaper }) {
                 </span>
             </div>
         )
-    }
+    }, []);
 
     return (
         <motion.div
@@ -338,7 +338,7 @@ export default function HomeScreen({ openApp, wallpaper }) {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
             className="absolute inset-0 z-20 overflow-hidden bg-cover bg-center select-none"
-            style={{ backgroundImage: `url("${wallpaper}")` }}
+            style={{ backgroundImage: `url("${wallpaper}")`, willChange: 'transform, opacity', transformOrigin: 'center center' }}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}

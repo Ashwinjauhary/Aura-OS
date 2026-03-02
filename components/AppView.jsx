@@ -13,6 +13,7 @@ export default function AppView({ appId, onClose, children }) {
             exit={{ opacity: 0, scale: 0.9, y: 20, borderRadius: '40px' }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             className="absolute inset-0 z-40 bg-zinc-950 text-white flex flex-col overflow-hidden touch-auto"
+            style={{ willChange: "transform, opacity, border-radius", transformOrigin: "center center" }}
         >
             {/* Ambient background glow inside apps */}
             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />

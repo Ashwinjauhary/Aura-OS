@@ -55,126 +55,40 @@ const DEFAULT_QUERIES = [
 ];
 
 
-function MusicWidget({ volume }) {
-    const audioRef = useRef(null);
-    const [tracks, setTracks] = useState([]);
-    const [idx, setIdx] = useState(0);
-    const [playing, setPlaying] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [progress, setProgress] = useState(0);
-    const [error, setError] = useState(false);
-
-    // Fetch tracks from iTunes on mount
-    useEffect(() => {
-        const fetchTracks = async () => {
-            try {
-                setLoading(true);
-                const query = DEFAULT_QUERIES.join(',');
-                const results = await Promise.all(
-                    DEFAULT_QUERIES.map(q =>
-                        fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=1&entity=song`)
-                            .then(r => r.json())
-                            .then(d => d.results[0])
-                            .catch(() => null)
-                    )
-                );
-                const valid = results.filter(t => t && t.previewUrl);
-                if (valid.length > 0) {
-                    // Shuffle so refresh always gives a different song first
-                    const shuffled = [...valid].sort(() => Math.random() - 0.5);
-                    setTracks(shuffled);
-                    setIdx(Math.floor(Math.random() * shuffled.length));
-                } else {
-                    setError(true);
-                }
-            } catch {
-                setError(true);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchTracks();
-    }, []);
-
-    const track = tracks[idx];
-
-    // When track changes or audio loads
-    useEffect(() => {
-        if (!audioRef.current || !track) return;
-        audioRef.current.src = track.previewUrl;
-        audioRef.current.load();
-        if (playing) {
-            audioRef.current.play().catch(() => setPlaying(false));
-        }
-    }, [idx, track]);
+function MusicWidget({ music }) {
+    const { tracks, currentIndex, setIndex, isPlaying, setPlaying } = music;
+    const loading = tracks.length === 0;
+    const track = tracks[currentIndex];
 
     // Toggle play/pause
-    const togglePlay = () => {
-        if (!audioRef.current || !track) return;
-        if (playing) {
-            audioRef.current.pause();
-            setPlaying(false);
-        } else {
-            audioRef.current.play().catch(() => setPlaying(false));
-            setPlaying(true);
-        }
+    const togglePlay = (e) => {
+        e.stopPropagation();
+        if (!track) return;
+        setPlaying(!isPlaying);
     };
 
-    const prev = () => {
-        setIdx(i => (i - 1 + tracks.length) % tracks.length);
-        setPlaying(false);
-        setProgress(0);
+    const prev = (e) => {
+        e.stopPropagation();
+        setIndex((currentIndex - 1 + tracks.length) % tracks.length);
     };
 
-    const next = () => {
-        setIdx(i => (i + 1) % tracks.length);
-        setPlaying(false);
-        setProgress(0);
+    const next = (e) => {
+        e.stopPropagation();
+        setIndex((currentIndex + 1) % tracks.length);
     };
 
-    // Progress bar
-    useEffect(() => {
-        const audio = audioRef.current;
-        if (!audio) return;
-        const onTime = () => {
-            if (audio.duration) setProgress(audio.currentTime / audio.duration);
-        };
-        const onEnded = () => { setPlaying(false); setProgress(0); next(); };
-        const onPlay = () => setPlaying(true);
-        const onPause = () => setPlaying(false);
-        audio.addEventListener('timeupdate', onTime);
-        audio.addEventListener('ended', onEnded);
-        audio.addEventListener('play', onPlay);
-        audio.addEventListener('pause', onPause);
-        return () => {
-            audio.removeEventListener('timeupdate', onTime);
-            audio.removeEventListener('ended', onEnded);
-            audio.removeEventListener('play', onPlay);
-            audio.removeEventListener('pause', onPause);
-        };
-    }, [tracks, idx]);
-
-    // Apply volume from slider to audio element
-    useEffect(() => {
-        if (audioRef.current) {
-            audioRef.current.volume = Math.max(0, Math.min(1, volume / 100));
-        }
-    }, [volume]);
-
-    // Album art color extraction (simple using artwork)
     const artUrl = track?.artworkUrl100?.replace('100x100', '60x60');
 
     return (
         <div className="flex-1 rounded-[28px] overflow-hidden shadow-lg border border-white/10 relative"
             style={{ background: 'linear-gradient(135deg, #1a1a2e, #16213e, #0f3460)' }}>
-            <audio ref={audioRef} preload="none" />
 
             {loading ? (
                 <div className="flex items-center justify-center h-full gap-2 text-white/60">
                     <Loader2 size={16} className="animate-spin" />
                     <span className="text-[11px]">Loading songs…</span>
                 </div>
-            ) : error || !track ? (
+            ) : !track ? (
                 <div className="flex flex-col items-center justify-center h-full gap-1 text-white/60">
                     <Music2 size={20} />
                     <span className="text-[11px]">No preview available</span>
@@ -184,7 +98,7 @@ function MusicWidget({ volume }) {
                     {/* Top row: art + info */}
                     <div className="flex items-start gap-2">
                         {artUrl ? (
-                            <img src={artUrl} alt={track.trackName} className="w-10 h-10 rounded-lg shrink-0 shadow" />
+                            <img src={artUrl} alt={track.trackName} className="w-10 h-10 rounded-lg shrink-0 shadow" loading="lazy" />
                         ) : (
                             <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                                 <Music2 size={18} className="text-white/60" />
@@ -193,13 +107,7 @@ function MusicWidget({ volume }) {
                         <div className="min-w-0 flex-1">
                             <p className="text-white font-bold text-[12px] leading-tight truncate">{track.trackName}</p>
                             <p className="text-white/60 text-[11px] truncate">{track.artistName}</p>
-                            <p className="text-white/30 text-[10px]">30s Preview • iTunes</p>
                         </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="w-full h-1 bg-white/20 rounded-full overflow-hidden">
-                        <div className="h-full bg-white/80 rounded-full transition-none" style={{ width: `${progress * 100}%` }} />
                     </div>
 
                     {/* Controls */}
@@ -210,7 +118,7 @@ function MusicWidget({ volume }) {
                         <button onClick={togglePlay}
                             className="w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-90 transition-transform shadow"
                         >
-                            {playing
+                            {isPlaying
                                 ? <Pause size={14} className="text-black" fill="currentColor" />
                                 : <Play size={14} className="text-black ml-0.5" fill="currentColor" />
                             }
@@ -227,15 +135,15 @@ function MusicWidget({ volume }) {
 
 // ── Main Control Center ────────────────────────────────────
 export default function ControlCenter({
-    isOpen, onClose,
+    isOpen, onClose, music,
     wifi, setWifi,
     bluetooth, setBluetooth,
     airplane, setAirplane,
     focus, setFocus,
     brightness, setBrightness,
     sound, setSound,
+    volume, setVolume,
 }) {
-    const [volume, setVolume] = useState(80); // 0-100 audio volume
 
     const toggleAirplane = () => {
         const newVal = !airplane;
@@ -258,6 +166,7 @@ export default function ControlCenter({
                         exit={{ y: '-100%', opacity: 0, scale: 0.95 }}
                         transition={{ type: 'spring', damping: 28, stiffness: 250 }}
                         className="absolute top-0 right-0 w-full h-auto z-40 p-4 pt-[70px] flex flex-col gap-3"
+                        style={{ willChange: 'transform, opacity' }}
                     >
                         {/* Row 1: Connectivity + Now Playing + Focus */}
                         <div className="flex gap-3 h-[170px]">
@@ -275,7 +184,7 @@ export default function ControlCenter({
 
                             {/* Now Playing + Focus */}
                             <div className="flex-1 flex flex-col gap-3">
-                                <MusicWidget volume={sound ? volume : 0} />
+                                <MusicWidget music={music} />
 
                                 <button onClick={() => setFocus(!focus)}
                                     className={`h-[52px] rounded-[28px] px-3 flex items-center gap-2 shadow-lg border transition-colors ${focus ? 'bg-yellow-500/30 border-yellow-500/40' : 'bg-black/40 backdrop-blur-[40px] border-white/10'}`}

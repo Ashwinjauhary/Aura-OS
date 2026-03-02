@@ -20,7 +20,7 @@ export default function LockScreen({ onUnlock, wallpaper }) {
     return (
         <motion.div
             className="absolute inset-0 bg-cover bg-center z-30 flex flex-col items-center select-none touch-none"
-            style={{ backgroundImage: `url("${wallpaper}")` }}
+            style={{ backgroundImage: `url("${wallpaper}")`, willChange: 'transform, opacity' }}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={0.4}

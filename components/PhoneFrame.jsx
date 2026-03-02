@@ -27,6 +27,7 @@ export default function PhoneFrame({ children, darkMode = true, brightness = 60,
                         style={{
                             filter: darkMode ? 'none' : 'brightness(1.5) saturate(0.7)',
                             backgroundColor: darkMode ? 'rgb(9,9,11)' : 'rgb(235,235,240)',
+                            willChange: 'filter, background-color'
                         }}
                     >
                         {children}

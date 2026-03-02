@@ -7,7 +7,7 @@ import ControlCenter from '@/components/ControlCenter';
 import AppView from '@/components/AppView';
 import dynamic from 'next/dynamic';
 import { AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 
 // ── Dynamic App Imports (Better Performance & HMR Stability) ──────────
@@ -61,6 +61,32 @@ export default function Home() {
     const [bluetooth, setBluetooth] = useLocalStorage('os_bluetooth', true);
     const [airplane, setAirplane] = useLocalStorage('os_airplane', false);
     const [focus, setFocus] = useLocalStorage('os_focus', false);
+    const [volume, setVolume] = useLocalStorage('os_volume', 80);
+
+    // ── Unified Music State (Plays in background) ───────────────
+    const [musicTracks, setMusicTracks] = useState([]);
+    const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+    const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+    const audioRef = useRef(null);
+
+    useEffect(() => {
+        const fetchInitialMusic = async () => {
+            const LEGENDS = ['Kishore Kumar Hits', 'Kumar Sanu Hits', 'Udit Narayan Hits'];
+            try {
+                const results = await Promise.all(
+                    LEGENDS.map(q =>
+                        fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&limit=5&entity=song`)
+                            .then(r => r.json())
+                            .then(d => d.results || [])
+                    )
+                );
+                const all = results.flat().filter(t => t.previewUrl);
+                const unique = Array.from(new Map(all.map(t => [t.trackId, t])).values()).sort(() => Math.random() - 0.5);
+                setMusicTracks(unique);
+            } catch (e) { console.error("Music fetch failed", e); }
+        };
+        fetchInitialMusic();
+    }, []);
 
     const osSettings = {
         darkMode, setDarkMode,
@@ -74,9 +100,30 @@ export default function Home() {
         bluetooth, setBluetooth,
         airplane, setAirplane,
         focus, setFocus,
+        volume, setVolume,
     };
 
     const goHome = () => setActiveApp(null);
+
+    const musicState = {
+        tracks: musicTracks,
+        currentIndex: currentTrackIndex,
+        setIndex: setCurrentTrackIndex,
+        isPlaying: isMusicPlaying,
+        setPlaying: setIsMusicPlaying,
+        volume: sound ? 100 : 0
+    };
+
+    // Play/Pause audio sync
+    useEffect(() => {
+        if (!audioRef.current) return;
+        if (isMusicPlaying) audioRef.current.play().catch(() => setIsMusicPlaying(false));
+        else audioRef.current.pause();
+    }, [isMusicPlaying, currentTrackIndex]);
+
+    useEffect(() => {
+        if (audioRef.current) audioRef.current.volume = (sound ? volume / 100 : 0);
+    }, [sound, volume]);
 
     const renderAppContent = (appId) => {
         switch (appId) {
@@ -96,7 +143,7 @@ export default function Home() {
             case 'calendar': return <CalendarApp />;
             case 'tictactoe': return <TicTacToeApp />;
             case 'weather': return <WeatherApp />;
-            case 'music': return <MusicApp globalVolume={sound ? 100 : 0} />;
+            case 'music': return <MusicApp {...musicState} />;
             case 'code': return <CodeApp />;
             case 'browser': return <BrowserApp />;
             case 'snake': return <SnakeApp />;
@@ -108,6 +155,12 @@ export default function Home() {
 
     return (
         <PhoneFrame darkMode={darkMode} brightness={brightness} airplane={airplane} focus={focus}>
+            <audio
+                ref={audioRef}
+                src={musicTracks[currentTrackIndex]?.previewUrl}
+                onEnded={() => setCurrentTrackIndex(i => (i + 1) % musicTracks.length)}
+            />
+
             <NotificationBar
                 controlCenterOpen={isControlCenterOpen}
                 toggleControlCenter={() => setIsControlCenterOpen(!isControlCenterOpen)}
@@ -127,10 +180,11 @@ export default function Home() {
             <ControlCenter
                 isOpen={isControlCenterOpen}
                 onClose={() => setIsControlCenterOpen(false)}
+                music={musicState}
                 {...osSettings}
             />
 
-            <AnimatePresence>
+            <AnimatePresence mode="wait">
                 {activeApp && (
                     <AppView appId={activeApp} onClose={goHome}>
                         {renderAppContent(activeApp)}

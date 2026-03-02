@@ -7,9 +7,6 @@ const nextConfig = {
     appIsrStatus: false,
     buildActivity: false,
   },
-  turbopack: {
-    root: '.',
-  },
   output: (process.env.NODE_ENV === 'production' && !process.env.VERCEL) ? 'export' : undefined,
 };
 
